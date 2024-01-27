@@ -178,6 +178,8 @@ public sealed class SessionManager
         // Wait User -> after all states
         if (state == SessionState.WaitingUser)
         {
+            _users.Clear();
+            _balancer.ReBalance();
             SessionState = SessionState.WaitingUser;
             return true;
         }
