@@ -108,9 +108,33 @@ public class Balancer
 
         private Team OtherTeam(Team team) =>
             team == _teamBlue ? _teamRed : _teamBlue;
+
+        public Team? GetTeam(int teamId)
+        {
+            if (_teamBlue.Id == teamId)
+                return _teamBlue;
+
+            if (_teamRed.Id == teamId)
+                return _teamRed;
+
+            return default;
+        }
+
+        public int CalculateDamageCoefficient(Team team)
+        {
+            var otherTeam = OtherTeam(team);
+            var teamCount = team.UserCount;
+            var otherTeamCount = otherTeam.UserCount;
+            var differenceUsers = otherTeamCount - teamCount;
+            if (differenceUsers < 0)
+                return 0;
+
+            return differenceUsers / 2;
+        }
     }
 
     private readonly TeamCompetitive _competitive;
+    private readonly object lockObj = new();
 
     public Balancer()
     {
@@ -142,12 +166,24 @@ public class Balancer
     public int GetUserTeam(Guid guid) =>
         _competitive.CheckIsUserInTeam(guid, out var team) ? team.Id : -1;
 
-    public bool RegisterClicksAndCheckIsSendAction(Guid guid, int clicks)
+    public bool RegisterClicksAndCheckIsSendAction(Guid guid, int clicks, out int damage)
     {
+        damage = 0;
         if (!_competitive.CheckIsUserInTeam(guid, out var team) || clicks <= 0)
             return false;
 
-        team.Clicks += clicks;
-        return team.Clicks >= 15;
+
+        lock (lockObj)
+        {
+            team.Clicks += clicks;
+            if (team.Clicks < 15)
+                return false;
+
+
+            var k = _competitive.CalculateDamageCoefficient(team);
+            damage = team.Clicks + k;
+            team.Clicks = 0;
+            return true;
+        }
     }
 }

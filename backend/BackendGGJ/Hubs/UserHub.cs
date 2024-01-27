@@ -11,10 +11,10 @@ public class UserHub : Hub
 
     private readonly ActionData[] actionData = new ActionData[]
     {
-        new ActionData(0, 10, 1),
-        new ActionData(1, 20, 2),
-        new ActionData(2, 50, 4),
-        new ActionData(3, 100, 15),
+        new ActionData(1, 10, 1),
+        new ActionData(2, 20, 2),
+        new ActionData(3, 50, 4),
+        new ActionData(4, 100, 15),
     };
 
     public UserHub(SessionManager sessionManager) =>

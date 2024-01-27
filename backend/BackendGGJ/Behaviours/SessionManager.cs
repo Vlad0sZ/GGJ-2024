@@ -86,17 +86,14 @@ public sealed class SessionManager
         if (SessionState != SessionState.Started)
             return user;
 
-        if (user.LastUpdated == null)
-            user.LastUpdated = DateTime.Now;
-
-        var userLastUpdatedTime = user.LastUpdated.Value;
-        var deltaTime = DateTime.Now - userLastUpdatedTime;
+        var now = DateTime.Now;
+        var userLastUpdatedTime = user.LastUpdated ?? DateTime.Now;
+        var deltaTime = now - userLastUpdatedTime;
         var deltaClick = clickCount - user.ClickCount;
 
-        if (deltaClick == 0)
-            return user;
+        user.LastUpdated = now;
 
-        if (deltaTime.TotalSeconds > 1 && deltaTime.TotalSeconds * 15 < deltaClick)
+        if (deltaTime.TotalSeconds > 1 && deltaTime.TotalSeconds * 7 < deltaClick)
         {
             _logger.LogWarning(
                 "[Session Manager] Cheat detected. Last update is {time}, total seconds {seconds}, click count {count}",
@@ -213,6 +210,9 @@ public sealed class SessionManager
 
     private void UpdateUserClicksOnClient(Guid userId, int clickCount)
     {
+        if (!_balancer.RegisterClicksAndCheckIsSendAction(userId, clickCount, out var damage))
+            return;
+
         int teamId = _balancer.GetUserTeam(userId);
         if (teamId < 0)
         {
@@ -220,8 +220,8 @@ public sealed class SessionManager
             return;
         }
 
-        var clickAction = new ClickAction(teamId, clickCount);
-        _unityConnectionContext.Clients.All.SendAsync(SignalClientMethod.ClickTeam, clickAction);
+        var clickAction = new ActionDamageData(0, damage, teamId);
+        _unityConnectionContext.Clients.All.SendAsync(SignalClientMethod.ActionTeam, clickAction);
     }
 
     private void SendUserActionOnClient(Guid userId, int actionId, int actionDamage)
