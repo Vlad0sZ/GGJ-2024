@@ -1,6 +1,6 @@
 ﻿using BackendGGJ.Behaviours;
+using BackendGGJ.Database;
 using BackendGGJ.Extensions;
-using BackendGGJ.Models;
 using Microsoft.AspNetCore.SignalR;
 
 namespace BackendGGJ.Hubs;
@@ -8,17 +8,13 @@ namespace BackendGGJ.Hubs;
 public class UserHub : Hub
 {
     private readonly SessionManager _sessionManager;
+    private readonly ActionDatabase _database;
 
-    private readonly ActionData[] actionData = new ActionData[]
+    public UserHub(SessionManager sessionManager, ActionDatabase database)
     {
-        new ActionData(1, 10, 1),
-        new ActionData(2, 20, 2),
-        new ActionData(3, 50, 4),
-        new ActionData(4, 100, 15),
-    };
-
-    public UserHub(SessionManager sessionManager) =>
         _sessionManager = sessionManager;
+        _database = database;
+    }
 
     private string ConnectionId => this.Context.ConnectionId;
 
@@ -41,6 +37,7 @@ public class UserHub : Hub
     {
         // TODO configs
 
+        var actionData = _database.GetAllData();
         var actions = actionData.Select(t => t.CoastData).ToArray();
         await Clients.Caller.SendAsync(SignalUserMethod.Actions, actions);
     }
@@ -70,13 +67,13 @@ public class UserHub : Hub
             return;
 
         // TODO logic to session manager
+        var actionData = _database.GetAllData();
         var actionById = actionData.SingleOrDefault(t => t.Id == actionId);
         if (actionById.Coast == 0)
             return;
 
         var userStats = _sessionManager.OnUserAction(userId, actionById);
         await Clients.Caller.SendAsync(SignalUserMethod.Stats, userStats);
-
     }
 
     public override Task OnDisconnectedAsync(Exception? exception)

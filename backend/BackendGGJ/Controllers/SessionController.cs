@@ -16,5 +16,7 @@ public class SessionController
         _logger = logger;
         _sessionManager = sessionManager;
     }
-    
+
+    [HttpGet]
+    public ActionResult<string> GetAll() => "hello there";
 }

@@ -180,6 +180,7 @@ public sealed class SessionManager
         {
             _users.Clear();
             _balancer.ReBalance();
+            UpdateUserCountOnClient();
             SessionState = SessionState.WaitingUser;
             return true;
         }
@@ -197,7 +198,7 @@ public sealed class SessionManager
     private void UpdateUserCountOnClient()
     {
         if (SessionState == SessionState.WaitingUser)
-            _unityConnectionContext.Clients.All.SendAsync("users", _users.Count);
+            _unityConnectionContext.Clients.All.SendAsync("users", _connectedUsers.Count);
     }
 
     private void SetSession(SessionState state)

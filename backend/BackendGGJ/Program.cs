@@ -1,5 +1,7 @@
 using BackendGGJ.Behaviours;
+using BackendGGJ.Database;
 using BackendGGJ.Hubs;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,7 +12,9 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<SessionManager>();
+builder.Services.AddScoped<ActionDatabase>();
 builder.Services.AddSignalR();
+builder.Services.AddMemoryCache();
 
 var app = builder.Build();
 
@@ -21,6 +25,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
+
+
 // app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
@@ -29,8 +39,8 @@ app.MapHub<ClientHub>("/game");
 
 app.UseCors(x => x.AllowAnyMethod()
     .AllowAnyHeader()
-    .SetIsOriginAllowed(_ => true) 
-    .AllowCredentials()); 
+    .SetIsOriginAllowed(_ => true)
+    .AllowCredentials());
 
 // KeepAlive ?
 // app.UseWebSockets();
