@@ -34,7 +34,8 @@
 <template>
   <div class="flex flex-col justify-center items-center h-[100dvh] gap-5">
     <h1 class="font-bold text-3xl">Кликай!</h1>
-    <button class="bg-red-700 hover:bg-red-800 focus:bg-red-900 px-10 py-3 rounded-2xl"
+    <button class="bg-red-700 hover:bg-red-800 w-72 h-72 rounded-2xl
+                   transition ease-in-out duration-200 hover:scale-90 active:scale-110"
             @click="store.commit('setClickCount', store.state.clickCount + 1)">
       This is fucking click!
     </button>
