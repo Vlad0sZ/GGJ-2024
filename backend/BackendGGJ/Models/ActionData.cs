@@ -21,3 +21,5 @@ public struct ActionData
 }
 
 public record ActionCoastData(int Id, int Coast);
+
+public record ActionDamageData(int Id, int Damage, int Team);

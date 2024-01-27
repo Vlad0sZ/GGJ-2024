@@ -27,6 +27,11 @@ app.MapControllers();
 app.MapHub<UserHub>("/hub");
 app.MapHub<ClientHub>("/game");
 
+app.UseCors(x => x.AllowAnyMethod()
+    .AllowAnyHeader()
+    .SetIsOriginAllowed(_ => true) 
+    .AllowCredentials()); 
+
 // KeepAlive ?
 // app.UseWebSockets();
 app.Run();

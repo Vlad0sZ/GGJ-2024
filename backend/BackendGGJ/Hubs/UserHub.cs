@@ -9,6 +9,14 @@ public class UserHub : Hub
 {
     private readonly SessionManager _sessionManager;
 
+    private readonly ActionData[] actionData = new ActionData[]
+    {
+        new ActionData(0, 10, 1),
+        new ActionData(1, 20, 2),
+        new ActionData(2, 50, 4),
+        new ActionData(3, 100, 15),
+    };
+
     public UserHub(SessionManager sessionManager) =>
         _sessionManager = sessionManager;
 
@@ -32,13 +40,6 @@ public class UserHub : Hub
     public async Task GetActions()
     {
         // TODO configs
-        var actionData = new ActionData[]
-        {
-            new ActionData(0, 10, 1),
-            new ActionData(1, 20, 2),
-            new ActionData(2, 50, 4),
-            new ActionData(3, 100, 15),
-        };
 
         var actions = actionData.Select(t => t.CoastData).ToArray();
         await Clients.Caller.SendAsync(SignalUserMethod.Actions, actions);
@@ -49,8 +50,33 @@ public class UserHub : Hub
         if (!Guid.TryParse(guid, out var userId))
             return;
 
+        _sessionManager.Balance(userId);
         var user = _sessionManager.GetUser(userId);
         await Clients.Caller.SendAsync(SignalUserMethod.Stats, user);
+    }
+
+    public async Task ClickPull(string guid, int clickCount)
+    {
+        if (!Guid.TryParse(guid, out var userId))
+            return;
+
+        var user = _sessionManager.UpdateUserClick(userId, clickCount);
+        await Clients.Caller.SendAsync(SignalUserMethod.Stats, user);
+    }
+
+    public async Task ActionPull(string guid, int actionId)
+    {
+        if (!Guid.TryParse(guid, out var userId))
+            return;
+
+        // TODO logic to session manager
+        var actionById = actionData.SingleOrDefault(t => t.Id == actionId);
+        if (actionById.Coast == 0)
+            return;
+
+        var userStats = _sessionManager.OnUserAction(userId, actionById);
+        await Clients.Caller.SendAsync(SignalUserMethod.Stats, userStats);
+
     }
 
     public override Task OnDisconnectedAsync(Exception? exception)

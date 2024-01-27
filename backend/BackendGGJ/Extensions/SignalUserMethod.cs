@@ -12,3 +12,12 @@ public static class SignalUserMethod
 
     public const string Stats = "stats";
 }
+
+public static class SignalClientMethod
+{
+    public const string Users = "users";
+
+    public const string ClickTeam = "clickTeam";
+    
+    public const string ActionTeam = "actionTeam";
+}

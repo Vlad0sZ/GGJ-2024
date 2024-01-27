@@ -49,6 +49,12 @@ public sealed class SessionManager
             throw new Exception("Already Registered");
 
         _connectedUsers[connection] = guid;
+        Balance(guid);
+        UpdateUserCountOnClient();
+    }
+
+    public void Balance(Guid guid)
+    {
         int userTeam = _balancer.Balance(guid);
         UpdateUserTeam(guid, userTeam);
     }
@@ -61,6 +67,7 @@ public sealed class SessionManager
         var guid = _connectedUsers[connection];
         _balancer.Remove(guid);
         _connectedUsers.Remove(connection);
+        UpdateUserCountOnClient();
     }
 
     public User GetUser(Guid guid)
@@ -73,19 +80,60 @@ public sealed class SessionManager
         return newUser;
     }
 
-    private void UpdateUserTeam(Guid guid, int team)
+    public User UpdateUserClick(Guid userId, int clickCount)
     {
-        var user = GetUser(guid);
-        user.Team = team;
-        _users[user.Id] = user;
+        var user = GetUser(userId);
+        if (SessionState != SessionState.Started)
+            return user;
+
+        if (user.LastUpdated == null)
+            user.LastUpdated = DateTime.Now;
+
+        var userLastUpdatedTime = user.LastUpdated.Value;
+        var deltaTime = DateTime.Now - userLastUpdatedTime;
+        var deltaClick = clickCount - user.ClickCount;
+
+        if (deltaClick == 0)
+            return user;
+
+        if (deltaTime.TotalSeconds > 1 && deltaTime.TotalSeconds * 15 < deltaClick)
+        {
+            _logger.LogWarning(
+                "[Session Manager] Cheat detected. Last update is {time}, total seconds {seconds}, click count {count}",
+                userLastUpdatedTime, deltaTime.TotalSeconds, clickCount);
+
+            _users[userId] = user;
+            return user;
+        }
+
+        UpdateUserClicksOnClient(userId, deltaClick);
+        user.ClickCount = clickCount;
+        _users[userId] = user;
+        return user;
     }
-    
+
+    public User OnUserAction(Guid userId, ActionData actionById)
+    {
+        var user = GetUser(userId);
+        if (SessionState != SessionState.Started)
+            return user;
+
+        var count = actionById.Coast;
+        if (user.ClickCount < count)
+            return user;
+
+        SendUserActionOnClient(userId, actionById.Id, actionById.Damage);
+        user.ClickCount -= actionById.Coast;
+        _users[userId] = user;
+        return user;
+    }
+
     public void ConnectClient(string connection)
     {
         if (!string.IsNullOrEmpty(_clientId))
             return;
 
-        _logger.LogInformation("Client with id {conn} is CONNECTED!", connection);
+        _logger.LogInformation("[SESSION MANAGER] Client with id {conn} is CONNECTED!", connection);
         _clientId = connection;
         SessionState = SessionState.WaitingUser;
     }
@@ -97,7 +145,7 @@ public sealed class SessionManager
 
 
         // TODO time to reconnect?
-        _logger.LogInformation("Client with id {conn} is DISCONNECTED!", connection);
+        _logger.LogInformation("[SESSION MANAGER] Client with id {conn} is DISCONNECTED!", connection);
         _balancer.CloseSession();
         SessionState = SessionState.NotCreated;
         _clientId = null;
@@ -123,6 +171,8 @@ public sealed class SessionManager
 
         if (state == SessionState.Ended && _sessionState == SessionState.Started)
         {
+            // TODO clear all users
+            _users.Clear();
             _balancer.ReBalance();
             SessionState = SessionState.Ended;
             return true;
@@ -138,13 +188,52 @@ public sealed class SessionManager
         return false;
     }
 
+    private void UpdateUserTeam(Guid guid, int team)
+    {
+        var user = GetUser(guid);
+        user.Team = team;
+        _users[user.Id] = user;
+    }
+
+    private void UpdateUserCountOnClient()
+    {
+        if (SessionState == SessionState.WaitingUser)
+            _unityConnectionContext.Clients.All.SendAsync("users", _users.Count);
+    }
+
     private void SetSession(SessionState state)
     {
         if (_sessionState == state)
             return;
 
-        _logger.LogInformation("Session was changed to {state}", state);
+        _logger.LogInformation("[SESSION MANAGER] Session was changed to {state}", state);
         _sessionState = state;
         _userHubContext.Clients.All.SendAsync(SignalUserMethod.GameState, GetSession());
+    }
+
+    private void UpdateUserClicksOnClient(Guid userId, int clickCount)
+    {
+        int teamId = _balancer.GetUserTeam(userId);
+        if (teamId < 0)
+        {
+            _logger.LogWarning("[SESSION MANAGER] User {id} try to update click count, but no one team", userId);
+            return;
+        }
+
+        var clickAction = new ClickAction(teamId, clickCount);
+        _unityConnectionContext.Clients.All.SendAsync(SignalClientMethod.ClickTeam, clickAction);
+    }
+
+    private void SendUserActionOnClient(Guid userId, int actionId, int actionDamage)
+    {
+        var teamId = _balancer.GetUserTeam(userId);
+        if (teamId < 0)
+        {
+            _logger.LogWarning("[SESSION MANAGER] User {id} try to send action, but no one team", userId);
+            return;
+        }
+
+        var actionData = new ActionDamageData(actionId, actionDamage, teamId);
+        _unityConnectionContext.Clients.All.SendAsync(SignalClientMethod.ActionTeam, actionData);
     }
 }

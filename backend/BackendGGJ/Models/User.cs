@@ -9,10 +9,13 @@ public struct User
         Id = id;
         ClickCount = 0;
         Team = -1;
+        LastUpdated = null;
     }
 
 
     public Guid Id { get; set; }
     public int ClickCount { get; set; }
     public int Team { get; set; }
+
+    public DateTime? LastUpdated { get; set; }
 }

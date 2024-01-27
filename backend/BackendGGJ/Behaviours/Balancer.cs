@@ -16,8 +16,6 @@ public class Balancer
         public bool IsUserInTeam(Guid guid) => _usersGuids.Contains(guid);
         public int UserCount => _usersGuids.Count;
 
-        // public IEnumerable<Guid> Users => _usersGuids;
-
         public void AddUser(Guid guid) =>
             _usersGuids.Add(guid);
 
@@ -26,6 +24,8 @@ public class Balancer
 
         public void Clear() =>
             _usersGuids.Clear();
+
+        public int Clicks { get; set; }
     }
 
     private class TeamCompetitive
@@ -75,8 +75,10 @@ public class Balancer
 
         public void IncrementUserActivity(Guid userId, int activity)
         {
-            var force = GetUserActivity(userId) + activity;
-            _userActivity[userId] = force;
+            if (!CheckIsUserInTeam(userId, out var team))
+                return;
+
+            team.Clicks += activity;
         }
 
         public int GetUserActivity(Guid guid) =>
@@ -103,6 +105,9 @@ public class Balancer
             _teamRed.Clear();
             _userActivity.Clear();
         }
+
+        private Team OtherTeam(Team team) =>
+            team == _teamBlue ? _teamRed : _teamBlue;
     }
 
     private readonly TeamCompetitive _competitive;
@@ -132,9 +137,17 @@ public class Balancer
 
     public void ReBalance() => _competitive.ClearStatistics();
 
-    public void UserSimpleAction(Guid guid) => _competitive.IncrementUserActivity(guid, 1);
-
-    public void UserDamageAction(Guid guid) => _competitive.IncrementUserActivity(guid, 5);
-
     public void CloseSession() => _competitive.ClearStatistics();
+
+    public int GetUserTeam(Guid guid) =>
+        _competitive.CheckIsUserInTeam(guid, out var team) ? team.Id : -1;
+
+    public bool RegisterClicksAndCheckIsSendAction(Guid guid, int clicks)
+    {
+        if (!_competitive.CheckIsUserInTeam(guid, out var team) || clicks <= 0)
+            return false;
+
+        team.Clicks += clicks;
+        return team.Clicks >= 15;
+    }
 }
