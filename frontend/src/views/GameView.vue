@@ -1,48 +1,55 @@
 <script>
   import ActionButton from "@/components/ActionButton.vue";
+  import store from "@/store";
+  import {ref} from "vue";
+  import {useSignalR} from "@dreamonkey/vue-signalr";
 
   export default {
     name: 'GameView',
-    components: {ActionButton},
     data(){
-      return {
-        clickCount: 0,
-        actions: [
-          {
-            id: 0,
-            price: 1,
-            name: 'Action 1'
-          },
-          {
-            id: 1,
-            price: 3,
-            name: 'Action 2'
-          }
-        ]
+      return{
+        timer: null,
+        signalR: null
       }
     },
-    methods: {
-      addClick()
-      {
-        this.clickCount++
-      },
+    computed: {
+      store() {
+        return store
+      }
+    },
+    components: {ActionButton},
+    mounted() {
+      this.signalR = useSignalR()
+      this.timer = window.setInterval(() => {
+        this.signalR.invoke("clickPull", localStorage.getItem('guid'), store.state.clickCount)
+        // console.log("fetched clicks: " + store.state.clickCount)
+      },1000);
+    },
+    unmounted() {
+      window.clearInterval(this.timer)
     }
   }
 </script>
 
 <template>
-  <div class="flex flex-col justify-center items-center h-[100svh] gap-5">
+  <div class="flex flex-col justify-center items-center h-[100dvh] gap-5">
     <h1 class="font-bold text-3xl">Кликай!</h1>
-    <button class="bg-red-700 hover:bg-red-800 focus:bg-red-900 px-10 py-3 rounded-2xl" @click="addClick">
+    <button class="bg-red-700 hover:bg-red-800 focus:bg-red-900 px-10 py-3 rounded-2xl"
+            @click="store.commit('setClickCount', store.state.clickCount + 1)">
       This is fucking click!
     </button>
     <div class="text-center">
       <p>Количество кликов:</p>
-      <p class="font-bold">{{clickCount}}</p>
+      <p class="font-bold">{{store.state.clickCount}}</p>
+      <p>Команда:</p>
+      <p class="font-bold">{{store.state.commandId}}</p>
     </div>
     <div class="flex flex-row gap-5">
-      <div v-for="action in actions">
-        <action-button :disabled="this.clickCount < action.price" @click="() => {this.clickCount -= action.price}">{{action.name}}</action-button>
+      <div v-for="action in store.state.actions">
+        <action-button :disabled="store.state.clickCount < action.coast" @click="() => {
+          store.commit('setClickCount', store.state.clickCount - action.coast)
+          this.signalR.invoke('actionPull', store.state.guid, action.id)
+        }">{{action.id}}</action-button>
       </div>
     </div>
   </div>
