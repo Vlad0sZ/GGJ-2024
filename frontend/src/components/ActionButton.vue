@@ -10,7 +10,9 @@
 </script>
 
 <template>
-  <button :disabled="$props.disabled" class="bg-green-700 hover:bg-green-800 focus:bg-green-900 disabled:bg-red-950 p-3 rounded">
+  <button :disabled="$props.disabled"
+          class="bg-[#90BB0C] hover:bg-green-800 active:bg-[#86107E] disabled:bg-[#FFD105]
+          h-[70px] w-[70px] flex justify-center items-center rounded-2xl border-black border-4">
     <slot></slot>
   </button>
 </template>

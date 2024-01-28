@@ -7,6 +7,7 @@ export default createStore({
     clickCount: 0,
     commandId: 0,
     actions : [],
+    background: 0,
     guid: 0
   },
   getters: {
@@ -23,6 +24,9 @@ export default createStore({
     },
     setCommandId(state, id) {
       state.commandId = id
+    },
+    setBackground(state, id) {
+      state.background = id
     },
     setActions(state, actions) {
       state.actions = actions

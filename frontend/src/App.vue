@@ -3,6 +3,7 @@
   import { v4 as uuidv4 } from 'uuid';
   import router from "@/router";
   import store from "@/store";
+  import {ref} from "vue";
 
   export default {
     computed: {
@@ -12,6 +13,16 @@
     },
     setup() {
       const signalr = useSignalR();
+
+      const bg_1 = ref(require('@/assets/UI/bg/bg_1.png'))
+      const bg_2 = ref(require('@/assets/UI/bg/bg_2.png'))
+      const bg_3 = ref(require('@/assets/UI/bg/bg_3.png'))
+      const front_1 = ref(require('@/assets/UI/bg/front_1.png'))
+      const front_2 = ref(require('@/assets/UI/bg/front_2.png'))
+      const front_3 = ref(require('@/assets/UI/bg/front_3.png'))
+      const front_4 = ref(require('@/assets/UI/bg/front_4.png'))
+      const front_5 = ref(require('@/assets/UI/bg/front_5.png'))
+      const front_6 = ref(require('@/assets/UI/bg/front_6.png'))
 
       let guid = localStorage.getItem("guid");
       if (guid == null) {
@@ -45,6 +56,8 @@
         signalr.invoke('login', guid);
         console.log("login")
       }
+
+      return {bg_1, bg_2, bg_3, front_1, front_2, front_3, front_4, front_5, front_6}
     },
     data(){
       return{
@@ -72,7 +85,8 @@
 </script>
 
 <template>
-  <div class="bg-gray-900 min-h-[100dvh]">
+  <div class=" min-h-[100dvh] w-screen">
+
     <router-view></router-view>
   </div>
 </template>
